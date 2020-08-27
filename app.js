@@ -7,7 +7,6 @@ const encryption = require("mongoose-encryption");
 const ejs = require("ejs");
 
 const app = express();
-// This is a modification
 
 // To serve static files inside folder "public"
 app.use(express.static("public"));
