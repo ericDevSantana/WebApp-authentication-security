@@ -9,6 +9,7 @@ const session = require("express-session");
 const passport = require("passport");
 const passportLocalMongoose = require("passport-local-mongoose");
 const GoogleStrategy = require("passport-google-oauth20");
+const FacebookStrategy = require("passport-facebook");
 const findOrCreate = require("mongoose-findorcreate");
 
 const app = express();
@@ -20,7 +21,7 @@ app.set("view engine", "ejs");
 app.use(bodyParser.urlencoded({extended: true}));
 
 app.use(session({
-    secret: "Our little secret.",
+    secret: process.env.SECRET,
     resave: false,
     saveUninitialized: false
 }));
@@ -35,6 +36,7 @@ const userSchema = new mongoose.Schema({
     email: String,
     password: String,
     googleId: String,
+    facebookId: String,
     secret: String
 });
 
@@ -63,6 +65,18 @@ passport.use(new GoogleStrategy({
   },
   function(accessToken, refreshToken, profile, cb) {
     User.findOrCreate({ googleId: profile.id }, function (err, user) {
+      return cb(err, user);
+    });
+  }
+));
+
+passport.use(new FacebookStrategy({
+    clientID: process.env.FACEBOOK_APP_ID,
+    clientSecret: process.env.FACEBOOK_APP_SECRET,
+    callbackURL: "http://localhost:3000/auth/facebook/secrets"
+  },
+  function(accessToken, refreshToken, profile, cb) {
+    User.findOrCreate({ facebookId: profile.id }, function (err, user) {
       return cb(err, user);
     });
   }
@@ -102,7 +116,17 @@ app.get("/auth/google/secrets",
     passport.authenticate("google", {failureRedirect: "/login"}),
     function(req, res){
         res.redirect("/secrets");
-    });
+});
+
+app.get('/auth/facebook',
+  passport.authenticate('facebook', {scope: ["email"]}));
+
+app.get('/auth/facebook/secrets',
+  passport.authenticate('facebook', { failureRedirect: '/login' }),
+  function(req, res) {
+    // Successful authentication, redirect home.
+    res.redirect('/secrets');
+});
 
 app.get("/submit", function(req, res){
     if(req.isAuthenticated()){
@@ -120,7 +144,6 @@ app.get("/logout", function(req, res){
 /////////////////////////////////////////POST//////////////////////////////////////////////////
 
 app.post("/register", function(req, res){
-
     User.register({username: req.body.username}, req.body.password, function(err, user){
         if(err){
             console.log(err);
