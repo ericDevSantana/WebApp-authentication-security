@@ -20,6 +20,7 @@ app.use(express.static("public"));
 app.set("view engine", "ejs");
 app.use(bodyParser.urlencoded({extended: true}));
 
+// Creating a session
 app.use(session({
     secret: process.env.SECRET,
     resave: false,
@@ -29,9 +30,11 @@ app.use(session({
 app.use(passport.initialize());
 app.use(passport.session());
 
+// Connection and avoiding deprecation warnings from MongoDB driver
 mongoose.connect("mongodb://localhost:27017/userDB", {useNewUrlParser: true, useUnifiedTopology: true});
 mongoose.set("useCreateIndex", true);
 
+//Schema DB
 const userSchema = new mongoose.Schema({
     email: String,
     password: String,
@@ -51,7 +54,7 @@ passport.serializeUser(function(user, done) {
     done(null, user.id);
   });
   
-  passport.deserializeUser(function(id, done) {
+passport.deserializeUser(function(id, done) {
     User.findById(id, function(err, user) {
       done(err, user);
     });
